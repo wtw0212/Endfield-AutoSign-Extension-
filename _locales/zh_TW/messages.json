@@ -1,0 +1,47 @@
+{
+    "appName": {
+        "message": "Endfield 自動簽到"
+    },
+    "appDesc": {
+        "message": "每日自動簽到 Endfield 遊戲官網"
+    },
+    "headerTitle": {
+        "message": "Endfield 自動簽到"
+    },
+    "lastCheckInLabel": {
+        "message": "上次簽到:"
+    },
+    "statusLabel": {
+        "message": "狀態:"
+    },
+    "manualBtnText": {
+        "message": "立即手動簽到"
+    },
+    "noRecord": {
+        "message": "無紀錄"
+    },
+    "idleStatus": {
+        "message": "待機中"
+    },
+    "readyStatus": {
+        "message": "準備就緒"
+    },
+    "startingSignIn": {
+        "message": "正在啟動簽到..."
+    },
+    "signInFailed": {
+        "message": "啟動失敗，請重試"
+    },
+    "alreadySignedIn": {
+        "message": "今日已簽到"
+    },
+    "notSignedInYet": {
+        "message": "今日尚未簽到"
+    },
+    "signInSuccessNotify": {
+        "message": "自動簽到完成"
+    },
+    "viewAllRewards": {
+        "message": "查看全部獎勵"
+    }
+}

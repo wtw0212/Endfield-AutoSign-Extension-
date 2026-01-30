@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "__MSG_appName__",
+  "version": "1.0",
+  "description": "__MSG_appDesc__",
+  "default_locale": "zh_TW",
+  "permissions": [
+    "alarms",
+    "scripting",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://game.skport.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "128": "icon.png"
+    }
+  },
+  "icons": {
+    "128": "icon.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://game.skport.com/endfield/sign-in*"
+      ],
+      "js": [
+        "content.js"
+      ]
+    }
+  ]
+}

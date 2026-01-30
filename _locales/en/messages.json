@@ -1,0 +1,47 @@
+{
+    "appName": {
+        "message": "Endfield Auto Sign-in"
+    },
+    "appDesc": {
+        "message": "Auto sign-in for Endfield official website daily"
+    },
+    "headerTitle": {
+        "message": "Endfield Auto Sign-in"
+    },
+    "lastCheckInLabel": {
+        "message": "Last Check-in:"
+    },
+    "statusLabel": {
+        "message": "Status:"
+    },
+    "manualBtnText": {
+        "message": "Manual Sign-in Now"
+    },
+    "noRecord": {
+        "message": "No Record"
+    },
+    "idleStatus": {
+        "message": "Idle"
+    },
+    "readyStatus": {
+        "message": "Ready"
+    },
+    "startingSignIn": {
+        "message": "Starting sign-in..."
+    },
+    "signInFailed": {
+        "message": "Failed, please try again"
+    },
+    "alreadySignedIn": {
+        "message": "Already signed in today"
+    },
+    "notSignedInYet": {
+        "message": "Not signed in today"
+    },
+    "signInSuccessNotify": {
+        "message": "Auto sign-in completed"
+    },
+    "viewAllRewards": {
+        "message": "View all rewards"
+    }
+}
