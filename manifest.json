@@ -6,7 +6,6 @@
   "default_locale": "zh_TW",
   "permissions": [
     "alarms",
-    "scripting",
     "storage",
     "tabs"
   ],
