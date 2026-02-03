@@ -1,6 +1,8 @@
 # Endfield Auto Sign-in Extension
 
 此 Chrome 擴充功能用於自動執行《明日方舟：終末地》官網的每日簽到任務。
+Chrome store link:
+https://chromewebstore.google.com/detail/Endfield%20%E8%87%AA%E5%8B%95%E7%B0%BD%E5%88%B0/dlfggcgclahjbigdebgfamllaajjfimj
 
 ## Description / 簡介
 
