@@ -43,5 +43,11 @@
     },
     "viewAllRewards": {
         "message": "View all rewards"
+    },
+    "autoSignInTimeLabel": {
+        "message": "Auto Sign-in Time:"
+    },
+    "saveSettingsBtnText": {
+        "message": "Save Settings"
     }
 }

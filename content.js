@@ -33,6 +33,13 @@ function attemptSignIn() {
     attempts++;
     console.log(`Scanning for sign-in button (Attempt ${attempts}/${MAX_ATTEMPTS})...`);
 
+    // New: Check if already signed in (even if not by this script)
+    if (document.querySelector('#completed-overlay')) {
+        console.log('Completed overlay detected. Reporting sign-in success to background script.');
+        chrome.runtime.sendMessage({ action: 'signInSuccess' });
+        return true; // Stop checking
+    }
+
     const target = findSignInButton();
 
     if (target) {
@@ -57,9 +64,6 @@ function attemptSignIn() {
 
     if (attempts >= MAX_ATTEMPTS) {
         console.log('Could not find sign-in element after maximum attempts.');
-        if (document.querySelector('#completed-overlay')) {
-            console.log('Completed overlays detected. Might be already signed in.');
-        }
         return true;
     }
 

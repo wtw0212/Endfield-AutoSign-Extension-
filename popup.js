@@ -2,6 +2,27 @@ document.addEventListener('DOMContentLoaded', () => {
     translateUI();
     updateUI();
 
+    // Load saved time
+    chrome.storage.local.get(['checkTime'], (result) => {
+        if (result.checkTime) {
+            document.getElementById('checkTime').value = result.checkTime;
+        }
+    });
+
+    document.getElementById('saveBtn').addEventListener('click', () => {
+        const timeValue = document.getElementById('checkTime').value;
+        if (timeValue) {
+            chrome.storage.local.set({ checkTime: timeValue }, () => {
+                chrome.runtime.sendMessage({ action: 'updateSchedule', time: timeValue }, (response) => {
+                    const msgDiv = document.getElementById('msg');
+                    msgDiv.innerText = chrome.i18n.getMessage('readyStatus'); // Use a generic success message or add new one
+                    msgDiv.style.color = '#4CAF50';
+                    setTimeout(() => { msgDiv.innerText = ''; }, 3000);
+                });
+            });
+        }
+    });
+
     document.getElementById('manualBtn').addEventListener('click', () => {
         chrome.runtime.sendMessage({ action: 'manualSignIn' }, (response) => {
             const msgDiv = document.getElementById('msg');

@@ -1,7 +1,7 @@
 const TARGET_URL = 'https://game.skport.com/endfield/sign-in?header=0&hg_media=skport&hg_link_campaign=tools';
 const ALARM_NAME = 'dailySignCheck';
-const CHECK_HOUR = 4;
-const CHECK_MINUTE = 10;
+const CHECK_HOUR = 0;
+const CHECK_MINUTE = 3;
 
 chrome.runtime.onInstalled.addListener(() => {
     console.log('Endfield Auto Sign-in Extension Installed');
@@ -19,6 +19,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     }
 });
 
+// Handle messages from content script or popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'signInSuccess') {
         const today = new Date().toDateString();
@@ -30,19 +31,39 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         performSignIn();
         sendResponse({ status: 'started' });
     }
+    else if (request.action === 'updateSchedule') {
+        createAlarm();
+        sendResponse({ status: 'updated' });
+    }
 });
 
 function createAlarm() {
-    chrome.alarms.create(ALARM_NAME, {
-        when: getNextCheckTime(),
-        periodInMinutes: 1440
+    chrome.alarms.clear(ALARM_NAME, (wasCleared) => {
+        chrome.storage.local.get(['checkTime'], (result) => {
+            const nextTime = getNextCheckTime(result.checkTime);
+            chrome.alarms.create(ALARM_NAME, {
+                when: nextTime,
+                periodInMinutes: 1440
+            });
+            console.log('Next alarm set for:', new Date(nextTime).toLocaleString());
+        });
     });
 }
 
-function getNextCheckTime() {
+function getNextCheckTime(customTime) {
     const now = new Date();
     const next = new Date();
-    next.setHours(CHECK_HOUR, CHECK_MINUTE, 0, 0);
+
+    let hour = CHECK_HOUR;
+    let minute = CHECK_MINUTE;
+
+    if (customTime) {
+        const [h, m] = customTime.split(':').map(Number);
+        hour = h;
+        minute = m;
+    }
+
+    next.setHours(hour, minute, 0, 0);
     if (next <= now) {
         next.setDate(next.getDate() + 1);
     }

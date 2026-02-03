@@ -43,5 +43,11 @@
     },
     "viewAllRewards": {
         "message": "查看全部獎勵"
+    },
+    "autoSignInTimeLabel": {
+        "message": "自動簽到時間:"
+    },
+    "saveSettingsBtnText": {
+        "message": "儲存設定"
     }
 }
