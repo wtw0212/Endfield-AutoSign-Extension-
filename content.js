@@ -18,15 +18,40 @@ function getExpandButton() {
 }
 
 function findSignInButton() {
-    let target = document.querySelector('.sc-gyeLsv.dswkJi');
-
-    if (!target) {
-        const lottie = document.querySelector('#lottie-container');
-        if (lottie) {
-            target = lottie.closest('.sc-gyeLsv');
+    // Strategy 1: Find via stable #lottie-container ID and traverse to clickable parent
+    const lottie = document.querySelector('#lottie-container');
+    if (lottie) {
+        // Traverse up to find a clickable parent (div that acts as a button)
+        let current = lottie.parentElement;
+        for (let i = 0; i < 5 && current; i++) {
+            // Check if this element is clickable (has cursor pointer or click handler)
+            const style = window.getComputedStyle(current);
+            if (style.cursor === 'pointer') {
+                console.log('Found clickable parent via lottie-container:', current);
+                return current;
+            }
+            current = current.parentElement;
+        }
+        // Fallback: return the closest div ancestor that might be clickable
+        const parent = lottie.parentElement?.parentElement;
+        if (parent) {
+            console.log('Using lottie-container parent as fallback:', parent);
+            return parent;
         }
     }
-    return target;
+
+    // Strategy 2: Find by looking for elements containing sign-in related text
+    const allDivs = document.querySelectorAll('div');
+    for (const div of allDivs) {
+        const text = div.innerText?.trim();
+        // Match sign-in button text in various languages
+        if (text === '簽到' || text === '签到' || text === 'Sign In' || text === 'Check In') {
+            console.log('Found sign-in button via text content:', div);
+            return div;
+        }
+    }
+
+    return null;
 }
 
 function attemptSignIn() {
