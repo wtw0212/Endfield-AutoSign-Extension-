@@ -82,12 +82,7 @@ function checkAndSignIn() {
 }
 
 function performSignIn() {
-    chrome.tabs.query({ url: "https://game.skport.com/endfield/sign-in*" }, (tabs) => {
-        if (tabs.length > 0) {
-            chrome.tabs.reload(tabs[0].id);
-            chrome.tabs.update(tabs[0].id, { active: true });
-        } else {
-            chrome.tabs.create({ url: TARGET_URL });
-        }
-    });
+    // Simply create a new tab - no host_permissions needed for chrome.tabs.create()
+    chrome.tabs.create({ url: TARGET_URL, active: false });
+    console.log('Opening sign-in page:', TARGET_URL);
 }
