@@ -1,12 +1,21 @@
 const TARGET_URL = 'https://game.skport.com/endfield/sign-in?header=0&hg_media=skport&hg_link_campaign=tools';
 const ALARM_NAME = 'dailySignCheck';
 const CHECK_HOUR = 0;
-const CHECK_MINUTE = 3;
+const CHECK_MINUTE = 30;
 
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener((details) => {
     console.log('Endfield Auto Sign-in Extension Installed');
-    createAlarm();
-    checkAndSignIn();
+
+    // On first install, open settings page for user to configure
+    if (details.reason === 'install') {
+        // Open popup.html as a tab for initial setup
+        chrome.tabs.create({ url: chrome.runtime.getURL('popup.html') });
+        console.log('First install detected - opening settings page');
+    } else {
+        // On update, just set up alarm and check sign-in
+        createAlarm();
+        checkAndSignIn();
+    }
 });
 
 chrome.runtime.onStartup.addListener(() => {
