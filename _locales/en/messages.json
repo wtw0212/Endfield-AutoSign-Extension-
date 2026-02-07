@@ -49,5 +49,17 @@
     },
     "saveSettingsBtnText": {
         "message": "Save Settings"
+    },
+    "backgroundInfoText": {
+        "message": "When the browser is open, a new tab will be opened for sign-in. When the browser is closed, it will launch the browser to sign in. Both run in the background without interrupting your other activities."
+    },
+    "backgroundPermissionText": {
+        "message": "⚠️ Remember to enable \"Continue running background apps\" permission in your browser for the auto-launch feature to work."
+    },
+    "backgroundSettingsPath": {
+        "message": "Chrome: [Settings] > [System] > [Continue running background apps when Google Chrome is closed]"
+    },
+    "githubLinkText": {
+        "message": "GitHub"
     }
 }
