@@ -7,7 +7,7 @@ let attempts = 0;
 function getExpandButton() {
     const spans = document.querySelectorAll('span');
     const localizedText = chrome.i18n.getMessage('viewAllRewards');
-    const fallbackText = '查看全部獎勵'; // Keep original as fallback
+    const fallbackText = '查看全部獎勵';
 
     for (const span of spans) {
         if (span.innerText.includes(localizedText) || span.innerText.includes(fallbackText)) {
@@ -17,52 +17,75 @@ function getExpandButton() {
     return null;
 }
 
+/**
+ * Find the current day's reward element that needs to be clicked.
+ * The current unchecked day is the ONLY element with #lottie-container.
+ */
 function findSignInButton() {
-    // Strategy 1: Find via stable #lottie-container ID and traverse to clickable parent
     const lottie = document.querySelector('#lottie-container');
-    if (lottie) {
-        // Traverse up to find a clickable parent (div that acts as a button)
-        let current = lottie.parentElement;
-        for (let i = 0; i < 5 && current; i++) {
-            // Check if this element is clickable (has cursor pointer or click handler)
-            const style = window.getComputedStyle(current);
-            if (style.cursor === 'pointer') {
-                console.log('Found clickable parent via lottie-container:', current);
-                return current;
-            }
-            current = current.parentElement;
-        }
-        // Fallback: return the closest div ancestor that might be clickable
-        const parent = lottie.parentElement?.parentElement;
-        if (parent) {
-            console.log('Using lottie-container parent as fallback:', parent);
-            return parent;
-        }
+    if (!lottie) {
+        console.log('No lottie-container found - either already signed in or page not loaded');
+        return null;
     }
 
-    // Strategy 2: Find by looking for elements containing sign-in related text
-    const allDivs = document.querySelectorAll('div');
-    for (const div of allDivs) {
-        const text = div.innerText?.trim();
-        // Match sign-in button text in various languages
-        if (text === '簽到' || text === '签到' || text === 'Sign In' || text === 'Check In') {
-            console.log('Found sign-in button via text content:', div);
-            return div;
+    // Find the clickable parent container (the reward card)
+    // The lottie is nested inside the card, traverse up to find the clickable element
+    let current = lottie.parentElement;
+    for (let i = 0; i < 10 && current; i++) {
+        const style = window.getComputedStyle(current);
+        // Check if this element looks like the reward card (sc-nuIvE class pattern)
+        if (current.className && typeof current.className === 'string' && current.className.includes('sc-nuIvE')) {
+            console.log('Found reward card container:', current.className);
+            return current;
         }
+        // Also check if it's clickable
+        if (style.cursor === 'pointer') {
+            console.log('Found clickable parent via cursor:pointer:', current.className);
+            return current;
+        }
+        current = current.parentElement;
+    }
+
+    // Fallback: just return the parent of the lottie (usually clickable)
+    const parent = lottie.parentElement?.parentElement;
+    if (parent) {
+        console.log('Using lottie parent as fallback:', parent.className);
+        return parent;
     }
 
     return null;
+}
+
+/**
+ * Check if today's sign-in is already completed.
+ * Simple logic: if #lottie-container exists, today is NOT completed yet.
+ */
+function isTodayAlreadyCompleted() {
+    const lottie = document.querySelector('#lottie-container');
+    // If lottie exists, today is still pending
+    if (lottie) {
+        return false;
+    }
+    // No lottie = either completed or page not fully loaded
+    // Check if there are any reward cards visible at all
+    const rewardCards = document.querySelectorAll('[class*="sc-nuIvE"]');
+    if (rewardCards.length > 0) {
+        // Cards exist but no lottie = already completed
+        return true;
+    }
+    // No cards yet = page still loading
+    return false;
 }
 
 function attemptSignIn() {
     attempts++;
     console.log(`Scanning for sign-in button (Attempt ${attempts}/${MAX_ATTEMPTS})...`);
 
-    // New: Check if already signed in (even if not by this script)
-    if (document.querySelector('#completed-overlay')) {
-        console.log('Completed overlay detected. Reporting sign-in success to background script.');
+    // Check if today is already signed in
+    if (isTodayAlreadyCompleted()) {
+        console.log('Today\'s sign-in is already completed. Reporting success to background script.');
         chrome.runtime.sendMessage({ action: 'signInSuccess' });
-        return true; // Stop checking
+        return true;
     }
 
     const target = findSignInButton();
