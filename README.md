@@ -36,3 +36,7 @@ A Chrome extension specifically designed for Arknights: Endfield players. It aut
 
 - 執行簽到時請確保瀏覽器已登入 SKPORT 帳號。
 - 簽到完成後，頁面會保持開啟狀態以便確認結果。
+
+## Credit
+代碼設計和部分文本來自以下repo:
+https://github.com/brownsugar/baha-auto-sign
