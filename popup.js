@@ -1,12 +1,26 @@
+const DEFAULT_CHECK_TIME = '00:30';
+
 document.addEventListener('DOMContentLoaded', () => {
     translateUI();
     updateUI();
 
     // Load saved time
     chrome.storage.local.get(['checkTime'], (result) => {
+        const checkTimeInput = document.getElementById('checkTime');
         if (result.checkTime) {
-            document.getElementById('checkTime').value = result.checkTime;
+            checkTimeInput.value = result.checkTime;
+            return;
         }
+
+        // First run: use default schedule and persist it so UI and alarm settings are consistent.
+        checkTimeInput.value = DEFAULT_CHECK_TIME;
+        chrome.storage.local.set({ checkTime: DEFAULT_CHECK_TIME }, () => {
+            chrome.runtime.sendMessage({ action: 'updateSchedule', time: DEFAULT_CHECK_TIME }, () => {
+                if (chrome.runtime.lastError) {
+                    console.warn('Failed to sync default schedule:', chrome.runtime.lastError.message);
+                }
+            });
+        });
     });
 
     document.getElementById('saveBtn').addEventListener('click', () => {

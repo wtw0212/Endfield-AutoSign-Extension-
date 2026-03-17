@@ -1,5 +1,21 @@
 # Changelog / 更新日誌
 
+## v1.0.6 (2026-03-17)
+
+### 🐛 Bug Fixes / 錯誤修復
+
+**EN:**
+- Fixed duplicate sign-in tab openings caused by race conditions between startup checks and alarm triggers
+- Added auto-check dedup protection with execution lock and short attempt window to prevent repeated openings
+- Improved background-mode reliability: when opening a tab fails (no browser window), fallback to creating a window for sign-in flow
+
+**中文:**
+- 修復啟動檢查與鬧鐘觸發競態條件造成重複開啟簽到頁的問題
+- 新增自動檢查防重機制（執行鎖與短時間嘗試去重），避免短時間內重複開頁
+- 改善背景模式可靠性：當無視窗導致分頁建立失敗時，改以建立視窗作為簽到流程備援
+
+---
+
 ## v1.0.5 (2026-02-08)
 
 ### 🐛 Bug Fixes / 錯誤修復
