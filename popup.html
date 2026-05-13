@@ -56,6 +56,16 @@
       color: #2c3e50;
     }
 
+    .checkbox-row {
+      align-items: center;
+      gap: 8px;
+      justify-content: flex-start;
+    }
+
+    .checkbox-row input {
+      margin: 0;
+    }
+
     .btn {
       width: 100%;
       padding: 10px;
@@ -125,21 +135,37 @@
 <body>
   <div class="header">
     <img src="icon.png" alt="Icon">
-    <h1 data-i18n="headerTitle">Endfield 自動簽到</h1>
+    <h1 data-i18n="headerTitle">SKPORT 自動簽到</h1>
   </div>
 
   <div class="card">
+    <div class="info-row">
+      <span class="info-label" data-i18n="endfieldLabel">Endfield</span>
+      <span class="info-value" id="endfieldStatus" data-i18n="readyStatus">準備就緒</span>
+    </div>
     <div class="info-row">
       <span class="info-label" data-i18n="lastCheckInLabel">上次簽到:</span>
-      <span class="info-value" id="lastCheckIn" data-i18n="noRecord">無紀錄</span>
+      <span class="info-value" id="endfieldLastCheckIn" data-i18n="noRecord">無紀錄</span>
     </div>
     <div class="info-row">
-      <span class="info-label" data-i18n="statusLabel">狀態:</span>
-      <span class="info-value" id="status" data-i18n="idleStatus">待機中</span>
+      <span class="info-label" data-i18n="arknightsLabel">明日方舟</span>
+      <span class="info-value" id="arknightsStatus" data-i18n="readyStatus">準備就緒</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label" data-i18n="lastCheckInLabel">上次簽到:</span>
+      <span class="info-value" id="arknightsLastCheckIn" data-i18n="noRecord">無紀錄</span>
     </div>
   </div>
 
   <div class="card">
+    <div class="info-row checkbox-row">
+      <input type="checkbox" id="enableEndfield">
+      <label class="info-label" for="enableEndfield" data-i18n="enableEndfieldLabel">啟用 Endfield 簽到</label>
+    </div>
+    <div class="info-row checkbox-row">
+      <input type="checkbox" id="enableArknights">
+      <label class="info-label" for="enableArknights" data-i18n="enableArknightsLabel">啟用明日方舟簽到</label>
+    </div>
     <div class="info-row" style="align-items: center; justify-content: space-between;">
       <span class="info-label" data-i18n="autoSignInTimeLabel">自動簽到時間:</span>
       <input type="time" id="checkTime"
@@ -161,9 +187,10 @@
   <div class="footer">
     <a href="https://github.com/wtw0212/Endfield-AutoSign-Extension" target="_blank"
       data-i18n="githubLinkText">GitHub</a>
-    <span> · v1.0.6</span>
+    <span> · v1.1.0</span>
   </div>
 
+  <script src="settings.js"></script>
   <script src="popup.js"></script>
 </body>
 

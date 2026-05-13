@@ -1,12 +1,24 @@
 {
     "appName": {
-        "message": "Endfield 自動簽到"
+        "message": "SKPORT 自動簽到"
     },
     "appDesc": {
-        "message": "每日自動簽到 Endfield 遊戲官網"
+        "message": "每日自動簽到 Endfield 與明日方舟"
     },
     "headerTitle": {
-        "message": "Endfield 自動簽到"
+        "message": "SKPORT 自動簽到"
+    },
+    "endfieldLabel": {
+        "message": "Endfield"
+    },
+    "arknightsLabel": {
+        "message": "明日方舟"
+    },
+    "enableEndfieldLabel": {
+        "message": "啟用 Endfield 簽到"
+    },
+    "enableArknightsLabel": {
+        "message": "啟用明日方舟簽到"
     },
     "lastCheckInLabel": {
         "message": "上次簽到:"
@@ -15,7 +27,7 @@
         "message": "狀態:"
     },
     "manualBtnText": {
-        "message": "立即手動簽到"
+        "message": "立即簽到全部遊戲"
     },
     "noRecord": {
         "message": "無紀錄"

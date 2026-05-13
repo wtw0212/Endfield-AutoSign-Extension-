@@ -1,12 +1,24 @@
 {
     "appName": {
-        "message": "Endfield Auto Sign-in"
+        "message": "SKPORT Auto Sign-in"
     },
     "appDesc": {
-        "message": "Auto sign-in for Endfield official website daily"
+        "message": "Auto sign-in for Endfield and Arknights daily"
     },
     "headerTitle": {
-        "message": "Endfield Auto Sign-in"
+        "message": "SKPORT Auto Sign-in"
+    },
+    "endfieldLabel": {
+        "message": "Endfield"
+    },
+    "arknightsLabel": {
+        "message": "Arknights"
+    },
+    "enableEndfieldLabel": {
+        "message": "Enable Endfield sign-in"
+    },
+    "enableArknightsLabel": {
+        "message": "Enable Arknights sign-in"
     },
     "lastCheckInLabel": {
         "message": "Last Check-in:"
@@ -15,7 +27,7 @@
         "message": "Status:"
     },
     "manualBtnText": {
-        "message": "Manual Sign-in Now"
+        "message": "Sign in all games now"
     },
     "noRecord": {
         "message": "No Record"

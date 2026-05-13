@@ -1,40 +1,12 @@
-const DEFAULT_CHECK_TIME = '00:30';
-
 document.addEventListener('DOMContentLoaded', () => {
     translateUI();
     updateUI();
-
-    // Load saved time
-    chrome.storage.local.get(['checkTime'], (result) => {
-        const checkTimeInput = document.getElementById('checkTime');
-        if (result.checkTime) {
-            checkTimeInput.value = result.checkTime;
-            return;
-        }
-
-        // First run: use default schedule and persist it so UI and alarm settings are consistent.
-        checkTimeInput.value = DEFAULT_CHECK_TIME;
-        chrome.storage.local.set({ checkTime: DEFAULT_CHECK_TIME }, () => {
-            chrome.runtime.sendMessage({ action: 'updateSchedule', time: DEFAULT_CHECK_TIME }, () => {
-                if (chrome.runtime.lastError) {
-                    console.warn('Failed to sync default schedule:', chrome.runtime.lastError.message);
-                }
-            });
-        });
-    });
+    loadSettings();
 
     document.getElementById('saveBtn').addEventListener('click', () => {
-        const timeValue = document.getElementById('checkTime').value;
-        if (timeValue) {
-            chrome.storage.local.set({ checkTime: timeValue }, () => {
-                chrome.runtime.sendMessage({ action: 'updateSchedule', time: timeValue }, (response) => {
-                    const msgDiv = document.getElementById('msg');
-                    msgDiv.innerText = chrome.i18n.getMessage('readyStatus'); // Use a generic success message or add new one
-                    msgDiv.style.color = '#4CAF50';
-                    setTimeout(() => { msgDiv.innerText = ''; }, 3000);
-                });
-            });
-        }
+        saveSettings(() => {
+            setStatusMessage(chrome.i18n.getMessage('readyStatus'));
+        });
     });
 
     document.getElementById('manualBtn').addEventListener('click', () => {
@@ -62,24 +34,35 @@ function translateUI() {
 }
 
 function updateUI() {
-    chrome.storage.local.get(['lastCheckInDate'], (result) => {
-        const dateEl = document.getElementById('lastCheckIn');
-        const statusEl = document.getElementById('status');
-
-        if (result.lastCheckInDate) {
-            dateEl.innerText = result.lastCheckInDate;
-
-            const today = new Date().toDateString();
-            if (result.lastCheckInDate === today) {
-                statusEl.innerText = chrome.i18n.getMessage('alreadySignedIn');
-                statusEl.style.color = '#4CAF50';
-            } else {
-                statusEl.innerText = chrome.i18n.getMessage('notSignedInYet');
-                statusEl.style.color = '#ff9800';
-            }
-        } else {
-            dateEl.innerText = chrome.i18n.getMessage('noRecord');
-            statusEl.innerText = chrome.i18n.getMessage('readyStatus');
+    chrome.storage.local.get(['lastCheckInDates', 'lastCheckInDate'], (result) => {
+        const lastCheckInDates = result.lastCheckInDates || {};
+        if (!lastCheckInDates.endfield && result.lastCheckInDate) {
+            lastCheckInDates.endfield = result.lastCheckInDate;
         }
+
+        updateGameStatus('endfield', lastCheckInDates.endfield);
+        updateGameStatus('arknights', lastCheckInDates.arknights);
     });
+}
+
+function updateGameStatus(targetKey, lastCheckInDate) {
+    const dateEl = document.getElementById(`${targetKey}LastCheckIn`);
+    const statusEl = document.getElementById(`${targetKey}Status`);
+    const today = new Date().toDateString();
+
+    if (!lastCheckInDate) {
+        dateEl.innerText = chrome.i18n.getMessage('noRecord');
+        statusEl.innerText = chrome.i18n.getMessage('readyStatus');
+        statusEl.style.color = '#2c3e50';
+        return;
+    }
+
+    dateEl.innerText = lastCheckInDate;
+    if (lastCheckInDate === today) {
+        statusEl.innerText = chrome.i18n.getMessage('alreadySignedIn');
+        statusEl.style.color = '#4CAF50';
+    } else {
+        statusEl.innerText = chrome.i18n.getMessage('notSignedInYet');
+        statusEl.style.color = '#ff9800';
+    }
 }

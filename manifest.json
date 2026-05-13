@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_appName__",
-  "version": "1.0.6",
+  "version": "1.1.0",
   "description": "__MSG_appDesc__",
   "default_locale": "zh_TW",
   "permissions": [
@@ -23,7 +23,8 @@
   "content_scripts": [
     {
       "matches": [
-        "https://game.skport.com/endfield/sign-in*"
+        "https://game.skport.com/endfield/sign-in*",
+        "https://game.skport.com/arknights/sign-in*"
       ],
       "js": [
         "content.js"

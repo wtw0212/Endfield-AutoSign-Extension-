@@ -1,8 +1,21 @@
-console.log('Endfield Auto Sign-in script loaded');
+console.log('SKPORT Auto Sign-in script loaded');
 
 const MAX_ATTEMPTS = 20;
 const RETRY_INTERVAL = 2000;
+const SUCCESS_REPORT_DELAY = 3000;
 let attempts = 0;
+
+function getSignInTargetKey() {
+    if (location.pathname.includes('/arknights/sign-in')) {
+        return 'arknights';
+    }
+
+    if (location.pathname.includes('/endfield/sign-in')) {
+        return 'endfield';
+    }
+
+    return null;
+}
 
 function getExpandButton() {
     const spans = document.querySelectorAll('span');
@@ -84,7 +97,10 @@ function attemptSignIn() {
     // Check if today is already signed in
     if (isTodayAlreadyCompleted()) {
         console.log('Today\'s sign-in is already completed. Reporting success to background script.');
-        chrome.runtime.sendMessage({ action: 'signInSuccess' });
+        chrome.runtime.sendMessage({
+            action: 'signInSuccess',
+            targetKey: getSignInTargetKey()
+        });
         return true;
     }
 
@@ -96,8 +112,13 @@ function attemptSignIn() {
         setTimeout(() => {
             target.click();
             console.log('Clicked sign-in element');
-            chrome.runtime.sendMessage({ action: 'signInSuccess' });
             showNotification(chrome.i18n.getMessage('signInSuccessNotify') || '自動簽到完成');
+            setTimeout(() => {
+                chrome.runtime.sendMessage({
+                    action: 'signInSuccess',
+                    targetKey: getSignInTargetKey()
+                });
+            }, SUCCESS_REPORT_DELAY);
         }, 1000);
 
         return true;

@@ -1,23 +1,32 @@
-const TARGET_URL = 'https://game.skport.com/endfield/sign-in?header=0&hg_media=skport&hg_link_campaign=tools';
+const SIGN_IN_TARGETS = {
+    endfield: {
+        name: 'Endfield',
+        url: 'https://game.skport.com/endfield/sign-in?header=0&hg_media=skport&hg_link_campaign=tools'
+    },
+    arknights: {
+        name: 'Arknights',
+        url: 'https://game.skport.com/arknights/sign-in?header=0&hg_media=skport&hg_link_campaign=tools'
+    }
+};
 const ALARM_NAME = 'dailySignCheck';
-const CHECK_HOUR = 0;
-const CHECK_MINUTE = 30;
+const DEFAULT_CHECK_TIME = '00:10';
+const CLOSE_DELAY_MS = 1000;
 const SIGN_IN_DEDUP_WINDOW_MS = 90 * 1000;
 
+const signInTabIds = {};
 let isAutoCheckRunning = false;
 
 chrome.runtime.onInstalled.addListener((details) => {
-    console.log('Endfield Auto Sign-in Extension Installed');
-
-    // On first install, open settings page for user to configure
-    if (details.reason === 'install') {
-        // Open popup.html as a tab for initial setup
-        chrome.tabs.create({ url: chrome.runtime.getURL('popup.html') });
-        console.log('First install detected - opening settings page');
-    }
-    
-    // Always set up alarm and check sign-in on install or update
+    console.log('SKPORT Auto Sign-in Extension Installed');
     createAlarm();
+
+    if (details.reason === 'install') {
+        chrome.tabs.create({ url: chrome.runtime.getURL('welcome.html') });
+        console.log('First install detected - opening welcome page');
+        return;
+    }
+
+    chrome.tabs.create({ url: chrome.runtime.getURL('updated.html') });
     checkAndSignIn('onInstalled');
 });
 
@@ -32,26 +41,72 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     }
 });
 
-// Handle messages from content script or popup
+chrome.tabs.onRemoved.addListener((tabId) => {
+    for (const targetKey of Object.keys(signInTabIds)) {
+        if (tabId === signInTabIds[targetKey]) {
+            delete signInTabIds[targetKey];
+        }
+    }
+
+    chrome.storage.local.get(['signInTabIds'], (result) => {
+        const storedTabIds = result.signInTabIds || {};
+        let changed = false;
+
+        for (const targetKey of Object.keys(storedTabIds)) {
+            if (tabId === storedTabIds[targetKey]) {
+                delete storedTabIds[targetKey];
+                changed = true;
+            }
+        }
+
+        if (changed) {
+            chrome.storage.local.set({ signInTabIds: storedTabIds });
+        }
+    });
+});
+
+// Handle messages from content script or popup.
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'signInSuccess') {
+        const targetKey = request.targetKey || getTargetKeyFromUrl(sender.tab?.url);
+        if (!targetKey) {
+            console.log('Sign-in success received from unknown target:', sender.tab?.url);
+            return;
+        }
+
         const today = new Date().toDateString();
-        chrome.storage.local.set({ lastCheckInDate: today, lastSignInAttemptAt: 0 }, () => {
-            console.log('Sign-in successful, date stored:', today);
+        chrome.storage.local.get(['lastCheckInDates'], (result) => {
+            const lastCheckInDates = result.lastCheckInDates || {};
+            lastCheckInDates[targetKey] = today;
+
+            chrome.storage.local.set({
+                lastCheckInDates,
+                lastSignInAttemptAt: 0
+            }, () => {
+                console.log(`${SIGN_IN_TARGETS[targetKey].name} sign-in successful, date stored:`, today);
+                closeSignInTab(targetKey, sender.tab?.id);
+            });
         });
     }
     else if (request.action === 'manualSignIn') {
-        performSignIn('manual');
+        performAllSignIns('manual');
         sendResponse({ status: 'started' });
     }
     else if (request.action === 'updateSchedule') {
         createAlarm();
         sendResponse({ status: 'updated' });
     }
+    else if (request.action === 'saveSettings') {
+        saveSettings(request.settings, () => {
+            createAlarm();
+            sendResponse({ status: 'saved' });
+        });
+        return true;
+    }
 });
 
 function createAlarm() {
-    chrome.alarms.clear(ALARM_NAME, (wasCleared) => {
+    chrome.alarms.clear(ALARM_NAME, () => {
         chrome.storage.local.get(['checkTime'], (result) => {
             const nextTime = getNextCheckTime(result.checkTime);
             chrome.alarms.create(ALARM_NAME, {
@@ -67,14 +122,7 @@ function getNextCheckTime(customTime) {
     const now = new Date();
     const next = new Date();
 
-    let hour = CHECK_HOUR;
-    let minute = CHECK_MINUTE;
-
-    if (customTime) {
-        const [h, m] = customTime.split(':').map(Number);
-        hour = h;
-        minute = m;
-    }
+    const [hour, minute] = (customTime || DEFAULT_CHECK_TIME).split(':').map(Number);
 
     next.setHours(hour, minute, 0, 0);
     if (next <= now) {
@@ -91,15 +139,12 @@ function checkAndSignIn(triggerSource = 'unknown') {
 
     isAutoCheckRunning = true;
 
-    chrome.storage.local.get(['lastCheckInDate', 'lastSignInAttemptAt'], (result) => {
-        const today = new Date().toDateString();
-
-        if (result.lastCheckInDate === today) {
-            console.log('Already signed in today:', today);
-            isAutoCheckRunning = false;
-            return;
-        }
-
+    chrome.storage.local.get([
+        'enabledTargets',
+        'lastCheckInDates',
+        'lastCheckInDate',
+        'lastSignInAttemptAt'
+    ], (result) => {
         const now = Date.now();
         const lastAttemptAt = result.lastSignInAttemptAt || 0;
         const isRecentAttempt = lastAttemptAt > 0 && now - lastAttemptAt < SIGN_IN_DEDUP_WINDOW_MS;
@@ -109,23 +154,73 @@ function checkAndSignIn(triggerSource = 'unknown') {
             return;
         }
 
+        const today = new Date().toDateString();
+        const enabledTargets = getEnabledTargets(result.enabledTargets);
+        const lastCheckInDates = result.lastCheckInDates || {};
+
+        // Migrate the old single-game record as Endfield only.
+        if (!lastCheckInDates.endfield && result.lastCheckInDate) {
+            lastCheckInDates.endfield = result.lastCheckInDate;
+            chrome.storage.local.set({ lastCheckInDates });
+        }
+
+        const targetsToOpen = Object.keys(SIGN_IN_TARGETS)
+            .filter(targetKey => {
+                if (!enabledTargets[targetKey]) {
+                    console.log(`${SIGN_IN_TARGETS[targetKey].name} sign-in is disabled`);
+                    return false;
+                }
+
+                if (lastCheckInDates[targetKey] === today) {
+                    console.log(`${SIGN_IN_TARGETS[targetKey].name} already signed in today:`, today);
+                    return false;
+                }
+
+                return true;
+            });
+
+        if (targetsToOpen.length === 0) {
+            isAutoCheckRunning = false;
+            return;
+        }
+
         chrome.storage.local.set({ lastSignInAttemptAt: now }, () => {
             if (chrome.runtime.lastError) {
                 console.warn('Failed to store sign-in attempt timestamp:', chrome.runtime.lastError.message);
             }
-            performSignIn('auto');
+
+            for (const targetKey of targetsToOpen) {
+                performSignIn(targetKey, 'auto');
+            }
+
             isAutoCheckRunning = false;
         });
     });
 }
 
-function performSignIn(triggerSource = 'auto') {
-    const shouldFocus = triggerSource === 'manual';
+function performAllSignIns(triggerSource = 'manual') {
+    chrome.storage.local.get(['enabledTargets'], (result) => {
+        const enabledTargets = getEnabledTargets(result.enabledTargets);
 
-    // Try opening a tab first. This may fail in background mode when no browser window exists.
-    chrome.tabs.create({ url: TARGET_URL, active: shouldFocus }, (tab) => {
+        for (const targetKey of Object.keys(SIGN_IN_TARGETS)) {
+            if (enabledTargets[targetKey]) {
+                performSignIn(targetKey, triggerSource);
+            }
+        }
+    });
+}
+
+function performSignIn(targetKey, triggerSource = 'auto') {
+    const target = SIGN_IN_TARGETS[targetKey];
+    if (!target) {
+        return;
+    }
+
+    const shouldFocus = triggerSource === 'manual';
+    chrome.tabs.create({ url: target.url, active: shouldFocus }, (tab) => {
         if (!chrome.runtime.lastError) {
-            console.log('Opening sign-in tab:', TARGET_URL, 'tabId:', tab && tab.id, 'trigger:', triggerSource);
+            rememberSignInTab(targetKey, tab?.id);
+            console.log(`Opening ${target.name} sign-in tab:`, target.url, 'tabId:', tab?.id, 'trigger:', triggerSource);
             return;
         }
 
@@ -133,17 +228,93 @@ function performSignIn(triggerSource = 'auto') {
         console.warn('tabs.create failed, falling back to windows.create:', err);
 
         chrome.windows.create({
-            url: TARGET_URL,
+            url: target.url,
             focused: shouldFocus,
             state: shouldFocus ? 'normal' : 'minimized',
             type: 'normal'
-        }, (win) => {
+        }, (window) => {
             if (chrome.runtime.lastError) {
                 console.error('windows.create also failed:', chrome.runtime.lastError.message);
                 return;
             }
 
-            console.log('Opening sign-in window:', TARGET_URL, 'windowId:', win && win.id, 'trigger:', triggerSource);
+            rememberSignInTab(targetKey, window?.tabs?.[0]?.id);
+            console.log(`Opening ${target.name} sign-in window:`, target.url, 'windowId:', window?.id, 'trigger:', triggerSource);
         });
     });
+}
+
+function closeSignInTab(targetKey, tabId) {
+    if (!tabId) {
+        return;
+    }
+
+    chrome.storage.local.get(['signInTabIds'], (result) => {
+        const storedTabIds = result.signInTabIds || {};
+        const expectedTabId = signInTabIds[targetKey] || storedTabIds[targetKey];
+
+        if (tabId !== expectedTabId) {
+            return;
+        }
+
+        setTimeout(() => {
+            chrome.tabs.remove(tabId, () => {
+                if (chrome.runtime.lastError) {
+                    console.log('Could not close sign-in tab:', chrome.runtime.lastError.message);
+                    return;
+                }
+
+                delete signInTabIds[targetKey];
+                delete storedTabIds[targetKey];
+                chrome.storage.local.set({ signInTabIds: storedTabIds });
+                console.log(`Closed ${SIGN_IN_TARGETS[targetKey].name} sign-in tab after successful sign-in`);
+            });
+        }, CLOSE_DELAY_MS);
+    });
+}
+
+function getTargetKeyFromUrl(url) {
+    if (!url) {
+        return null;
+    }
+
+    if (url.includes('/arknights/sign-in')) {
+        return 'arknights';
+    }
+
+    if (url.includes('/endfield/sign-in')) {
+        return 'endfield';
+    }
+
+    return null;
+}
+
+function rememberSignInTab(targetKey, tabId) {
+    if (!tabId) {
+        return;
+    }
+
+    signInTabIds[targetKey] = tabId;
+    chrome.storage.local.get(['signInTabIds'], (result) => {
+        const storedTabIds = result.signInTabIds || {};
+        storedTabIds[targetKey] = tabId;
+        chrome.storage.local.set({ signInTabIds: storedTabIds });
+    });
+}
+
+function getEnabledTargets(enabledTargets) {
+    return {
+        endfield: enabledTargets?.endfield !== false,
+        arknights: enabledTargets?.arknights !== false
+    };
+}
+
+function saveSettings(settings, callback) {
+    const enabledTargets = getEnabledTargets(settings?.enabledTargets);
+    const checkTime = settings?.checkTime || DEFAULT_CHECK_TIME;
+
+    chrome.storage.local.set({
+        checkTime,
+        enabledTargets
+    }, callback);
 }
