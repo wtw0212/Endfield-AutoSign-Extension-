@@ -14,6 +14,7 @@ const CLOSE_DELAY_MS = 1000;
 const SIGN_IN_DEDUP_WINDOW_MS = 90 * 1000;
 
 const signInTabIds = {};
+const signInTabTriggers = {};
 let isAutoCheckRunning = false;
 
 chrome.runtime.onInstalled.addListener((details) => {
@@ -45,22 +46,28 @@ chrome.tabs.onRemoved.addListener((tabId) => {
     for (const targetKey of Object.keys(signInTabIds)) {
         if (tabId === signInTabIds[targetKey]) {
             delete signInTabIds[targetKey];
+            delete signInTabTriggers[targetKey];
         }
     }
 
-    chrome.storage.local.get(['signInTabIds'], (result) => {
+    chrome.storage.local.get(['signInTabIds', 'signInTabTriggers'], (result) => {
         const storedTabIds = result.signInTabIds || {};
+        const storedTabTriggers = result.signInTabTriggers || {};
         let changed = false;
 
         for (const targetKey of Object.keys(storedTabIds)) {
             if (tabId === storedTabIds[targetKey]) {
                 delete storedTabIds[targetKey];
+                delete storedTabTriggers[targetKey];
                 changed = true;
             }
         }
 
         if (changed) {
-            chrome.storage.local.set({ signInTabIds: storedTabIds });
+            chrome.storage.local.set({
+                signInTabIds: storedTabIds,
+                signInTabTriggers: storedTabTriggers
+            });
         }
     });
 });
@@ -219,7 +226,7 @@ function performSignIn(targetKey, triggerSource = 'auto') {
     const shouldFocus = triggerSource === 'manual';
     chrome.tabs.create({ url: target.url, active: shouldFocus }, (tab) => {
         if (!chrome.runtime.lastError) {
-            rememberSignInTab(targetKey, tab?.id);
+            rememberSignInTab(targetKey, tab?.id, triggerSource);
             console.log(`Opening ${target.name} sign-in tab:`, target.url, 'tabId:', tab?.id, 'trigger:', triggerSource);
             return;
         }
@@ -238,7 +245,7 @@ function performSignIn(targetKey, triggerSource = 'auto') {
                 return;
             }
 
-            rememberSignInTab(targetKey, window?.tabs?.[0]?.id);
+            rememberSignInTab(targetKey, window?.tabs?.[0]?.id, triggerSource);
             console.log(`Opening ${target.name} sign-in window:`, target.url, 'windowId:', window?.id, 'trigger:', triggerSource);
         });
     });
@@ -249,11 +256,13 @@ function closeSignInTab(targetKey, tabId) {
         return;
     }
 
-    chrome.storage.local.get(['signInTabIds'], (result) => {
+    chrome.storage.local.get(['signInTabIds', 'signInTabTriggers'], (result) => {
         const storedTabIds = result.signInTabIds || {};
+        const storedTabTriggers = result.signInTabTriggers || {};
         const expectedTabId = signInTabIds[targetKey] || storedTabIds[targetKey];
+        const triggerSource = signInTabTriggers[targetKey] || storedTabTriggers[targetKey] || 'auto';
 
-        if (tabId !== expectedTabId) {
+        if (tabId !== expectedTabId || triggerSource === 'manual') {
             return;
         }
 
@@ -265,8 +274,13 @@ function closeSignInTab(targetKey, tabId) {
                 }
 
                 delete signInTabIds[targetKey];
+                delete signInTabTriggers[targetKey];
                 delete storedTabIds[targetKey];
-                chrome.storage.local.set({ signInTabIds: storedTabIds });
+                delete storedTabTriggers[targetKey];
+                chrome.storage.local.set({
+                    signInTabIds: storedTabIds,
+                    signInTabTriggers: storedTabTriggers
+                });
                 console.log(`Closed ${SIGN_IN_TARGETS[targetKey].name} sign-in tab after successful sign-in`);
             });
         }, CLOSE_DELAY_MS);
@@ -289,16 +303,22 @@ function getTargetKeyFromUrl(url) {
     return null;
 }
 
-function rememberSignInTab(targetKey, tabId) {
+function rememberSignInTab(targetKey, tabId, triggerSource = 'auto') {
     if (!tabId) {
         return;
     }
 
     signInTabIds[targetKey] = tabId;
-    chrome.storage.local.get(['signInTabIds'], (result) => {
+    signInTabTriggers[targetKey] = triggerSource;
+    chrome.storage.local.get(['signInTabIds', 'signInTabTriggers'], (result) => {
         const storedTabIds = result.signInTabIds || {};
+        const storedTabTriggers = result.signInTabTriggers || {};
         storedTabIds[targetKey] = tabId;
-        chrome.storage.local.set({ signInTabIds: storedTabIds });
+        storedTabTriggers[targetKey] = triggerSource;
+        chrome.storage.local.set({
+            signInTabIds: storedTabIds,
+            signInTabTriggers: storedTabTriggers
+        });
     });
 }
 

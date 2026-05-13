@@ -2,8 +2,10 @@ console.log('SKPORT Auto Sign-in script loaded');
 
 const MAX_ATTEMPTS = 20;
 const RETRY_INTERVAL = 2000;
-const SUCCESS_REPORT_DELAY = 3000;
+const POST_CLICK_VERIFY_ATTEMPTS = 8;
+const POST_CLICK_VERIFY_INTERVAL = 1000;
 let attempts = 0;
+let signInClicked = false;
 
 function getSignInTargetKey() {
     if (location.pathname.includes('/arknights/sign-in')) {
@@ -73,21 +75,68 @@ function findSignInButton() {
  * Check if today's sign-in is already completed.
  * Simple logic: if #lottie-container exists, today is NOT completed yet.
  */
-function isTodayAlreadyCompleted() {
+function hasRewardCards() {
+    return document.querySelectorAll('[class*="sc-nuIvE"]').length > 0;
+}
+
+function hasExplicitCompletionText() {
+    const text = document.body?.innerText || '';
+    return [
+        '今日已簽到',
+        '已簽到',
+        '簽到完成',
+        '已完成簽到',
+        'already signed',
+        'signed in',
+        'claimed',
+        'completed'
+    ].some(marker => text.toLowerCase().includes(marker.toLowerCase()));
+}
+
+function isTodayAlreadyCompleted(options = {}) {
+    const allowSettledRewardCards = options.allowSettledRewardCards === true;
     const lottie = document.querySelector('#lottie-container');
     // If lottie exists, today is still pending
     if (lottie) {
         return false;
     }
-    // No lottie = either completed or page not fully loaded
-    // Check if there are any reward cards visible at all
-    const rewardCards = document.querySelectorAll('[class*="sc-nuIvE"]');
-    if (rewardCards.length > 0) {
-        // Cards exist but no lottie = already completed
+
+    if (hasExplicitCompletionText()) {
         return true;
     }
-    // No cards yet = page still loading
+
+    // After we clicked the reward, the pending lottie disappearing while the
+    // reward grid remains visible is the site state transition we can verify.
+    if (allowSettledRewardCards && signInClicked && hasRewardCards()) {
+        return true;
+    }
+
     return false;
+}
+
+function reportSignInSuccess() {
+    showNotification(chrome.i18n.getMessage('signInSuccessNotify') || '自動簽到完成');
+    chrome.runtime.sendMessage({
+        action: 'signInSuccess',
+        targetKey: getSignInTargetKey()
+    });
+}
+
+function waitForSignInCompletion(remainingAttempts = POST_CLICK_VERIFY_ATTEMPTS) {
+    if (isTodayAlreadyCompleted({ allowSettledRewardCards: true })) {
+        console.log('Sign-in completion verified. Reporting success to background script.');
+        reportSignInSuccess();
+        return;
+    }
+
+    if (remainingAttempts <= 0) {
+        console.log('Sign-in click was issued but completion could not be verified. Leaving tab open.');
+        return;
+    }
+
+    setTimeout(() => {
+        waitForSignInCompletion(remainingAttempts - 1);
+    }, POST_CLICK_VERIFY_INTERVAL);
 }
 
 function attemptSignIn() {
@@ -97,10 +146,7 @@ function attemptSignIn() {
     // Check if today is already signed in
     if (isTodayAlreadyCompleted()) {
         console.log('Today\'s sign-in is already completed. Reporting success to background script.');
-        chrome.runtime.sendMessage({
-            action: 'signInSuccess',
-            targetKey: getSignInTargetKey()
-        });
+        reportSignInSuccess();
         return true;
     }
 
@@ -110,15 +156,14 @@ function attemptSignIn() {
         console.log('Sign-in element found:', target);
 
         setTimeout(() => {
-            target.click();
-            console.log('Clicked sign-in element');
-            showNotification(chrome.i18n.getMessage('signInSuccessNotify') || '自動簽到完成');
-            setTimeout(() => {
-                chrome.runtime.sendMessage({
-                    action: 'signInSuccess',
-                    targetKey: getSignInTargetKey()
-                });
-            }, SUCCESS_REPORT_DELAY);
+            try {
+                target.click();
+                signInClicked = true;
+                console.log('Clicked sign-in element');
+                waitForSignInCompletion();
+            } catch (error) {
+                console.log('Sign-in click failed. Leaving tab open.', error);
+            }
         }, 1000);
 
         return true;
