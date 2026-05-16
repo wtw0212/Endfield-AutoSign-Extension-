@@ -138,7 +138,7 @@ function createHarness(options = {}) {
                 return [];
             }
             if (selector === '*') {
-                return state.claimHistoryOpen ? [claimHistoryPanel, claimHistoryTitle, claimHistoryDate] : [];
+                return state.claimHistoryOpen ? [claimHistoryTitle, claimHistoryPanel, claimHistoryDate] : [];
             }
             return [];
         }
@@ -197,6 +197,7 @@ function createHarness(options = {}) {
 
     vm.createContext(context);
     vm.runInContext(CONTENT_SCRIPT, context);
+    context.showNotification = () => {};
 
     return { context, messages, state };
 }
