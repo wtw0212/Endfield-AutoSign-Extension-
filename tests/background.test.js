@@ -8,6 +8,7 @@ const BACKGROUND_SCRIPT = fs.readFileSync(path.join(__dirname, '..', 'background
 
 function createHarness() {
     const removedTabs = [];
+    const createdTabs = [];
     const storageData = {};
 
     const storage = {
@@ -57,7 +58,17 @@ function createHarness() {
             },
             tabs: {
                 onRemoved: noopEvent,
-                create() {},
+                create(options, callback) {
+                    const tab = {
+                        id: createdTabs.length + 1,
+                        url: options.url,
+                        active: options.active
+                    };
+                    createdTabs.push(tab);
+                    if (callback) {
+                        callback(tab);
+                    }
+                },
                 remove(tabId, callback) {
                     removedTabs.push(tabId);
                     if (callback) {
@@ -77,7 +88,7 @@ function createHarness() {
     vm.createContext(context);
     vm.runInContext(BACKGROUND_SCRIPT, context);
 
-    return { context, removedTabs, storageData };
+    return { context, createdTabs, removedTabs, storageData };
 }
 
 test('does not close tabs that were opened by manual sign-in', () => {
@@ -96,4 +107,20 @@ test('closes tabs that were opened by automatic sign-in', () => {
     context.closeSignInTab('arknights', 8);
 
     assert.deepEqual(removedTabs, [8]);
+});
+
+test('does not reopen an automatic sign-in target that was already attempted today', () => {
+    const { context, createdTabs, storageData } = createHarness();
+    const today = new Date().toDateString();
+    storageData.enabledTargets = {
+        endfield: false,
+        arknights: true
+    };
+    storageData.lastSignInAttemptDates = {
+        arknights: today
+    };
+
+    context.checkAndSignIn('onStartup');
+
+    assert.deepEqual(createdTabs, []);
 });

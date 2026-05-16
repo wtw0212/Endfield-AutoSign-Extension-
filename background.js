@@ -150,7 +150,8 @@ function checkAndSignIn(triggerSource = 'unknown') {
         'enabledTargets',
         'lastCheckInDates',
         'lastCheckInDate',
-        'lastSignInAttemptAt'
+        'lastSignInAttemptAt',
+        'lastSignInAttemptDates'
     ], (result) => {
         const now = Date.now();
         const lastAttemptAt = result.lastSignInAttemptAt || 0;
@@ -164,6 +165,7 @@ function checkAndSignIn(triggerSource = 'unknown') {
         const today = new Date().toDateString();
         const enabledTargets = getEnabledTargets(result.enabledTargets);
         const lastCheckInDates = result.lastCheckInDates || {};
+        const lastSignInAttemptDates = result.lastSignInAttemptDates || {};
 
         // Migrate the old single-game record as Endfield only.
         if (!lastCheckInDates.endfield && result.lastCheckInDate) {
@@ -183,6 +185,11 @@ function checkAndSignIn(triggerSource = 'unknown') {
                     return false;
                 }
 
+                if (lastSignInAttemptDates[targetKey] === today) {
+                    console.log(`${SIGN_IN_TARGETS[targetKey].name} already attempted today:`, today);
+                    return false;
+                }
+
                 return true;
             });
 
@@ -191,7 +198,14 @@ function checkAndSignIn(triggerSource = 'unknown') {
             return;
         }
 
-        chrome.storage.local.set({ lastSignInAttemptAt: now }, () => {
+        for (const targetKey of targetsToOpen) {
+            lastSignInAttemptDates[targetKey] = today;
+        }
+
+        chrome.storage.local.set({
+            lastSignInAttemptAt: now,
+            lastSignInAttemptDates
+        }, () => {
             if (chrome.runtime.lastError) {
                 console.warn('Failed to store sign-in attempt timestamp:', chrome.runtime.lastError.message);
             }

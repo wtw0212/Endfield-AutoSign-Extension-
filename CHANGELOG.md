@@ -1,5 +1,31 @@
 # Changelog / 更新日誌
 
+## Unreleased
+
+---
+
+## v1.1.1 (2026-05-16)
+
+### Bug Fixes / 錯誤修復
+
+**EN:**
+- Verify successful sign-ins through the claim history panel before recording completion
+- Fixed Endfield claim history parsing when older dates appear before today's record in the page DOM
+- Fixed Arknights claim history opening by adding a fallback selector for the record button
+- Keep the sign-in tab open and avoid writing a success record when SKPORT reports that no game character was found
+- Avoid reopening the same automatic sign-in page repeatedly after it has already been attempted today
+- Explicitly request SKPORT host access to improve content-script injection in Chromium-based browsers
+
+**中文:**
+- 簽到成功會先透過領取紀錄面板驗證，確認今日紀錄存在後才寫入完成狀態
+- 修正 Endfield 領取紀錄 DOM 中舊日期先出現時，可能誤判最新紀錄日期的問題
+- 新增明日方舟領取紀錄按鈕備援 selector，修正無法自動打開 record 的問題
+- 當 SKPORT 顯示「該帳號下未查詢到遊戲角色」時，保留簽到分頁且不寫入成功紀錄
+- 今日已自動嘗試簽到後，不再因為未寫入成功紀錄而反覆重新開啟同一簽到頁
+- 明確要求 SKPORT 網站權限，改善 Chromium 系瀏覽器的 content script 注入可靠性
+
+---
+
 ## v1.1.0 (2026-05-14)
 
 ### ✨ New Features / 新功能
