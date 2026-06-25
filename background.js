@@ -27,7 +27,9 @@ chrome.runtime.onInstalled.addListener((details) => {
         return;
     }
 
-    chrome.tabs.create({ url: chrome.runtime.getURL('updated.html') });
+    if (shouldShowUpdatePage(details)) {
+        chrome.tabs.create({ url: chrome.runtime.getURL('updated.html') });
+    }
     checkAndSignIn('onInstalled');
 });
 
@@ -136,6 +138,18 @@ function getNextCheckTime(customTime) {
         next.setDate(next.getDate() + 1);
     }
     return next.getTime();
+}
+
+function getVersionFeatureKey(version) {
+    return String(version || '').split('.').slice(0, 2).join('.');
+}
+
+function shouldShowUpdatePage(details) {
+    if (details.reason !== 'update' || !details.previousVersion) {
+        return false;
+    }
+
+    return getVersionFeatureKey(details.previousVersion) !== getVersionFeatureKey(chrome.runtime.getManifest().version);
 }
 
 function checkAndSignIn(triggerSource = 'unknown') {
